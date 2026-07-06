@@ -240,6 +240,30 @@ const NALSA_CATEGORIES = [{
 const CATEGORICAL_IDS = ['scst', 'trafficking', 'woman', 'child', 'disability', 'disaster', 'workman', 'custody'];
 const STATE_SCHEME_IDS = ['senior', 'transgender'];
 
+// Mutually-contradictory self-descriptors. A single applicant cannot be two of
+// these at the same time, so ticking one makes the conflicting ones unselectable
+// (with a short reason on hover). Only genuine contradictions are listed — real
+// combinations like "senior + woman" or "woman + disability" stay allowed.
+const CONFLICT_REASON = {
+  'woman|child': "A woman is an adult and a child is under 18 — the same person can't be both.",
+  'woman|transgender': "‘A woman’ (S.12(c)) and ‘transgender’ (state scheme) are separate categories — pick the one you're applying under.",
+  'child|senior': "A child is under 18 and a senior citizen is 60+ — nobody is both at once.",
+  'child|transgender': "For an applicant under 18, tick ‘a child’; the transgender state scheme is a separate adult-identity category."
+};
+function conflictKey(a, b) {
+  return [a, b].sort().join('|');
+}
+// Adjacency built from the reason keys (symmetric).
+const CATEGORY_CONFLICTS = (() => {
+  const m = {};
+  Object.keys(CONFLICT_REASON).forEach(k => {
+    const [a, b] = k.split('|');
+    (m[a] = m[a] || {})[b] = CONFLICT_REASON[k];
+    (m[b] = m[b] || {})[a] = CONFLICT_REASON[k];
+  });
+  return m;
+})();
+
 // Indicative annual-income ceilings under S.12(h). These vary by state and are
 // revised periodically — the applicant MUST verify with their SLSA/DLSA.
 const INCOME_CEILINGS = {
@@ -739,16 +763,35 @@ Write a short, two-paragraph plain-language explanation of what this means and t
     className: "la-field"
   }, /*#__PURE__*/React.createElement("label", null, "Which of these describe you?"), /*#__PURE__*/React.createElement("div", {
     className: "la-checks"
-  }, NALSA_CATEGORIES.map(c => /*#__PURE__*/React.createElement("label", {
-    key: c.id,
-    className: `la-check ${cats[c.id] ? 'on' : ''}`
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: !!cats[c.id],
-    onChange: () => toggleCat(c.id)
-  }), /*#__PURE__*/React.createElement("span", null, c.label, /*#__PURE__*/React.createElement("span", {
-    className: "la-cite"
-  }, c.cite)))))), /*#__PURE__*/React.createElement("div", {
+  }, NALSA_CATEGORIES.map(c => {
+    const selected = !!cats[c.id];
+    let reason = '';
+    if (!selected && CATEGORY_CONFLICTS[c.id]) {
+      for (const other of Object.keys(cats)) {
+        if (cats[other] && CATEGORY_CONFLICTS[c.id][other]) {
+          reason = CATEGORY_CONFLICTS[c.id][other];
+          break;
+        }
+      }
+    }
+    const disabled = !!reason;
+    return /*#__PURE__*/React.createElement("label", {
+      key: c.id,
+      className: `la-check ${selected ? 'on' : ''} ${disabled ? 'disabled' : ''}`
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: selected,
+      disabled: disabled,
+      onChange: () => {
+        if (!disabled) toggleCat(c.id);
+      }
+    }), /*#__PURE__*/React.createElement("span", null, c.label, /*#__PURE__*/React.createElement("span", {
+      className: "la-cite"
+    }, c.cite)), disabled && /*#__PURE__*/React.createElement("span", {
+      className: "la-tip",
+      role: "tooltip"
+    }, "🔒 ", reason));
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "la-field"
   }, /*#__PURE__*/React.createElement("label", null, "What is your matter about?"), /*#__PURE__*/React.createElement("select", {
     className: "la-select",
