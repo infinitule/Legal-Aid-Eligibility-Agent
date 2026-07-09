@@ -14,6 +14,7 @@
 ![Frontend](https://img.shields.io/badge/UI-React%2018-61dafb)
 ![Server](https://img.shields.io/badge/Server-Python%20stdlib-3776ab)
 ![Track](https://img.shields.io/badge/Capstone-AAI%20%C2%B7%20Access%20to%20Justice-b08d3c)
+![License](https://img.shields.io/badge/License-MIT-2d6a4f)
 
 </div>
 
